@@ -33,11 +33,9 @@ object-detection-realtime/
 │   ├── detect.tflite       # model weights (download separately, see below)
 │   └── coco_labels.txt     # 80 COCO class names
 │
-├── simple_object_detection.py    # week 1 — bare-bones detection loop
-├── advanced_object_detection.py  # week 2 — classes, frame skipping, colour coding
-├── people_counter.py             # week 3 — occupancy counter with CSV logging
+├── simple_object_detection.py   just a simple detection loop
 │
-├── LOG.md                  # dev log — what I tried and what happened
+├── LOG.md                  # dev log
 └── README.md
 ```
 
@@ -92,30 +90,6 @@ python simple_object_detection.py
 
 **Controls:** `q` quit &nbsp;|&nbsp; `s` save frame
 
----
-
-### `advanced_object_detection.py`
-Same model, better structure. Runs inference every N frames so the display FPS is smoother. Colour-coded boxes per class. You can adjust the confidence threshold on the fly with `+` / `-`.
-
-```bash
-python advanced_object_detection.py
-```
-
-**Controls:** `q` quit &nbsp;|&nbsp; `s` save &nbsp;|&nbsp; `+` / `-` adjust threshold
-
----
-
-### `people_counter.py`
-Detects only people (COCO class 0) and tracks current occupancy, session peak, and total. Logs a timestamped count to `people_count_log.csv` every frame.
-
-```bash
-python people_counter.py
-```
-
-**Controls:** `q` quit &nbsp;|&nbsp; `r` reset counters
-
----
-
 ## Performance (Pi 5, MobileNet SSD v1 quantized)
 
 | Resolution | Threads | Approx FPS |
@@ -128,27 +102,6 @@ These are rough numbers — actual FPS depends on scene complexity and what else
 
 ---
 
-## Troubleshooting
-
-**Low FPS**
-- Make sure you're using the quantized (INT8) model, not the float32 one
-- Try `num_threads=4` in the `tflite.Interpreter()` call
-- Increase `DETECTION_INTERVAL` in advanced_object_detection.py
-
-**Objects not being detected**
-- Check lighting first — this was the most common issue during development (see LOG.md)
-- Lower `CONFIDENCE_THRESHOLD` (try 0.4)
-- Make sure the object is one of the 80 COCO classes
-
-**Camera not starting**
-- Make sure the camera is enabled: `sudo raspi-config` → Interface Options → Camera
-- Check the camera ribbon cable is seated properly
-
-**Import errors**
-- Make sure you're running inside the venv (`source venv/bin/activate`)
-- Don't mix `pip install --break-system-packages` and venv installs
-
----
 
 ## Resources
 
