@@ -35,3 +35,5 @@ Brightness was ~45. Anything below ~80 and the camera is boosting gain, which ad
 1. Turned on the overhead light + a desk lamp → brightness went to ~110, detections improved immediately
 2. Opened the window blinds (daytime) → best results, clean sharp images
 3. Moved closer to the camera (was about 3m away) → also helped a lot
+
+**Outcome:** With good lighting and standing ~1.5m from the camera, the model was detecting people at 80–90% confidence consistently. Same model, totally different results just from fixing the environment.
