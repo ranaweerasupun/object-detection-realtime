@@ -30,3 +30,8 @@ print(f"Avg brightness: {np.mean(frame):.1f}")   # was coming back around 45
 print(f"Std dev: {np.std(frame):.1f}")
 ```
 Brightness was ~45. Anything below ~80 and the camera is boosting gain, which adds noise.
+
+**Aplied solutions...:**
+1. Turned on the overhead light + a desk lamp → brightness went to ~110, detections improved immediately
+2. Opened the window blinds (daytime) → best results, clean sharp images
+3. Moved closer to the camera (was about 3m away) → also helped a lot
