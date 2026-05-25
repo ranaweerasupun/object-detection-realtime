@@ -107,3 +107,35 @@ class ObjectDetector:
     def avg_fps(self):
         return sum(self.fps_history) / len(self.fps_history) if self.fps_history else 0.0
 
+class Visualizer:
+    """Draws boxes, labels, and the stats overlay onto frames."""
+
+    def draw_detections(self, frame, detections):
+        h, w = frame.shape[:2]
+        for det in detections:
+            ymin, xmin, ymax, xmax = det["box"]
+            left, top, right, bottom = int(xmin*w), int(ymin*h), int(xmax*w), int(ymax*h)
+
+            color = COLORS[det["class_id"] % len(COLORS)]
+            label = f"{det['class_name']}: {det['confidence']*100:.1f}%"
+
+            cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
+
+            (lw, lh), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
+            cv2.rectangle(frame, (left, top - lh - 8), (left + lw, top), color, -1)
+            cv2.putText(frame, label, (left, top - 4),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+        return frame
+
+    def draw_hud(self, frame, fps, inference_ms, num_objects, threshold):
+        lines = [
+            f"FPS: {fps:.1f}",
+            f"Inference: {inference_ms:.0f} ms",
+            f"Objects: {num_objects}",
+            f"Threshold: {threshold:.0%}",
+        ]
+        y = 28
+        for line in lines:
+            cv2.putText(frame, line, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+            y += 26
+        return frame
