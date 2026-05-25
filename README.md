@@ -90,6 +90,15 @@ python simple_object_detection.py
 
 **Controls:** `q` quit &nbsp;|&nbsp; `s` save frame
 
+### `advanced_object_detection.py`
+Same model, better structure. Runs inference every N frames so the display FPS is smoother. Colour-coded boxes per class. You can adjust the confidence threshold on the fly with `+` / `-`.
+
+```bash
+python advanced_object_detection.py
+```
+
+**Controls:** `q` quit &nbsp;|&nbsp; `s` save &nbsp;|&nbsp; `+` / `-` adjust threshold
+
 ## Performance (Pi 5, MobileNet SSD v1 quantized)
 
 | Resolution | Threads | Approx FPS |
