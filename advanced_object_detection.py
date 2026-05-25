@@ -139,3 +139,78 @@ class Visualizer:
             cv2.putText(frame, line, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
             y += 26
         return frame
+    
+
+def main():
+    print("Advanced Object Detection")
+    print("=" * 50)
+
+    detector   = ObjectDetector(MODEL_PATH, LABELS_PATH)
+    visualizer = Visualizer()
+
+    # wrap in a list so the key handler can mutate it without a global
+    threshold = [CONFIDENCE_THRESHOLD]
+
+    print("Starting camera...")
+    picam2 = Picamera2()
+    picam2.configure(picam2.create_preview_configuration(
+        main={"size": (CAMERA_WIDTH, CAMERA_HEIGHT)}
+    ))
+    picam2.start()
+    time.sleep(2)
+
+    print("\nRunning — q=quit  s=save  +/-=threshold\n")
+
+    frame_count     = 0
+    last_detections = []
+    last_inf_ms     = 0.0
+    class_totals    = {}   # running count per class for the end-of-session summary
+
+    try:
+        while True:
+            frame = picam2.capture_array()
+
+            if frame_count % DETECTION_INTERVAL == 0:
+                last_detections, last_inf_ms = detector.detect(frame, threshold[0])
+                for det in last_detections:
+                    name = det["class_name"]
+                    class_totals[name] = class_totals.get(name, 0) + 1
+
+            visualizer.draw_detections(frame, last_detections)
+            visualizer.draw_hud(frame, detector.avg_fps(), last_inf_ms,
+                                len(last_detections), threshold[0])
+
+            cv2.imshow("Advanced Object Detection", frame)
+            frame_count += 1
+
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord("q"):
+                break
+            elif key == ord("s"):
+                fname = f"frame_{int(time.time())}.jpg"
+                cv2.imwrite(fname, frame)
+                print(f"Saved {fname}")
+            elif key in (ord("+"), ord("=")):
+                threshold[0] = min(0.95, threshold[0] + 0.05)
+                print(f"Threshold -> {threshold[0]:.0%}")
+            elif key in (ord("-"), ord("_")):
+                threshold[0] = max(0.10, threshold[0] - 0.05)
+                print(f"Threshold -> {threshold[0]:.0%}")
+
+    except KeyboardInterrupt:
+        pass
+
+    cv2.destroyAllWindows()
+    picam2.stop()
+
+    print(f"\nFrames: {frame_count}  |  Avg FPS: {detector.avg_fps():.1f}")
+    print("\nDetections by class:")
+    if class_totals:
+        for name, count in sorted(class_totals.items(), key=lambda x: x[1], reverse=True):
+            print(f"  {name:<20} {count}")
+    else:
+        print("  nothing detected")
+
+
+if __name__ == "__main__":
+    main()
