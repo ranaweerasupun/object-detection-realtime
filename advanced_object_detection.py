@@ -6,6 +6,23 @@ Built on top of simple_object_detection.py. The core detection logic is the
 same, but this version is restructured into classes and adds a few things that
 make it more practical to use day-to-day:
 
+  - Frame skipping: inference runs every N frames so the display stays smooth
+  - Rolling FPS average so the on-screen counter isn't jumping all over the place
+  - Per-class colour coding — easier to tell objects apart at a glance
+  - Confidence threshold adjustable at runtime without restarting
+  - End-of-session summary showing which objects were detected most
+
+Tested on: Raspberry Pi 5 + Pi Camera Module 3
+Model: MobileNet SSD v1 quantized (detect.tflite, trained on COCO)
+
+Install dependencies (inside your venv):
+    pip install picamera2 opencv-python numpy tflite-runtime
+
+Controls:
+    q      quit
+    s      save screenshot
+    + / =  raise confidence threshold by 5%
+    - / _  lower confidence threshold by 5%
 """
 
 import cv2
