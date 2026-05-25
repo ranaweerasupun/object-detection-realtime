@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+"""
+advanced_object_detection.py
+
+Built on top of simple_object_detection.py. The core detection logic is the
+same, but this version is restructured into classes and adds a few things that
+make it more practical to use day-to-day:
+
+"""
+
+import cv2
+import numpy as np
+from picamera2 import Picamera2
+import time
+from collections import deque
+
+try:
+    import tflite_runtime.interpreter as tflite
+except ImportError:
+    import tensorflow.lite as tflite
+
+
+MODEL_PATH           = "models/detect.tflite"
+LABELS_PATH          = "models/coco_labels.txt"
+CONFIDENCE_THRESHOLD = 0.6   # slightly higher than the simple version
+CAMERA_WIDTH         = 640
+CAMERA_HEIGHT        = 480
+DETECTION_INTERVAL   = 2     # run inference every N frames — rest of the time we reuse the last result
+
+# one colour per class (cycles if there are more than 6 classes in view)
+COLORS = [
+    (0, 255, 0),    # green
+    (255, 80, 0),   # blue-ish
+    (0, 80, 255),   # red-ish
+    (255, 255, 0),  # cyan
+    (255, 0, 200),  # magenta
+    (0, 220, 255),  # yellow
+]
+
+
+class ObjectDetector:
+    """Handles model loading and inference. Keeps track of FPS history."""
+
+    def __init__(self, model_path, labels_path):
+        with open(labels_path, "r") as f:
+            self.labels = [line.strip() for line in f.readlines()]
+        if self.labels[0] == "???":
+            self.labels.pop(0)
+        print(f"  {len(self.labels)} labels loaded")
+
+        self.interpreter = tflite.Interpreter(model_path=model_path)
+        self.interpreter.allocate_tensors()
+
+        self.input_details  = self.interpreter.get_input_details()
+        self.output_details = self.interpreter.get_output_details()
+
+        shape            = self.input_details[0]["shape"]
+        self.model_h     = shape[1]
+        self.model_w     = shape[2]
+        print(f"  Model input: {self.model_w}x{self.model_h}")
+
+        # keep the last 30 inference times so FPS doesn't flicker on screen
+        self.fps_history     = deque(maxlen=30)
+        self.last_detections = []
+
+    def detect(self, frame, threshold):
+        """
+        Run inference on frame (RGB numpy array).
+        Returns a list of detections and the inference time in ms.
+        """
+        t0 = time.time()
+
+        resized    = cv2.resize(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR), (self.model_w, self.model_h))
+        input_data = np.expand_dims(resized, axis=0)
+
+        if self.input_details[0]["dtype"] == np.uint8:
+            input_data = input_data.astype(np.uint8)
+        else:
+            input_data = input_data.astype(np.float32) / 255.0
+
+        self.interpreter.set_tensor(self.input_details[0]["index"], input_data)
+        self.interpreter.invoke()
+
+        inference_ms = (time.time() - t0) * 1000
+        self.fps_history.append(1000 / inference_ms if inference_ms > 0 else 0)
+
+        boxes          = self.interpreter.get_tensor(self.output_details[0]["index"])[0]
+        classes        = self.interpreter.get_tensor(self.output_details[1]["index"])[0]
+        scores         = self.interpreter.get_tensor(self.output_details[2]["index"])[0]
+        num_detections = int(self.interpreter.get_tensor(self.output_details[3]["index"])[0])
+
+        detections = []
+        for i in range(num_detections):
+            if scores[i] < threshold:
+                continue
+            cid = int(classes[i])
+            detections.append({
+                "box"        : tuple(boxes[i]),    # normalised (ymin, xmin, ymax, xmax)
+                "class_id"   : cid,
+                "class_name" : self.labels[cid] if cid < len(self.labels) else f"id:{cid}",
+                "confidence" : float(scores[i]),
+            })
+
+        self.last_detections = detections
+        return detections, inference_ms
+
+    def avg_fps(self):
+        return sum(self.fps_history) / len(self.fps_history) if self.fps_history else 0.0
+
